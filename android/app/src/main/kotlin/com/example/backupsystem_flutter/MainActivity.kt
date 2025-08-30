@@ -1,0 +1,5 @@
+package com.example.backupsystem_flutter
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
