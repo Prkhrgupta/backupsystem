@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'RestorePage.dart';
-import 'SchedularPage.dart';
-import 'SelectFolderPage.dart';
-import 'SideBar.dart';
+import 'restore_page.dart';
+import 'schedular_page.dart';
+import 'select_folder_page.dart';
+import '../widgets/side_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
