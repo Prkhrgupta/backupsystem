@@ -14,7 +14,7 @@ class SideBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 220,
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [

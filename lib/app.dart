@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
+import 'features/home/presentation/widgets/app_bar.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -37,33 +38,27 @@ class App extends StatelessWidget {
 class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
 
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("username");
+    await prefs.remove("password");
+
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'SIT - Swift Cloud : Backup System',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-        ),
+      appBar: MyAppBar(
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove("username");
-              await prefs.remove("password");
-
-              if (context.mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                );
-              }
-            },
+            onPressed: () => _logout(context),
           )
         ],
       ),
@@ -71,4 +66,3 @@ class MainLayout extends StatelessWidget {
     );
   }
 }
-

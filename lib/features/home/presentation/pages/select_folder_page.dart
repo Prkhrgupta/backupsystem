@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swift_cloud_backup/core/api/login_auth_api.dart';
 
 class SelectFolderPage extends StatefulWidget {
   const SelectFolderPage({super.key});
@@ -47,6 +48,8 @@ class _SelectFolderPageState extends State<SelectFolderPage> {
 
   /// Show a simple alert when Backup Now is pressed
   void _backupNow() {
+    AdminApi adminApi = AdminApi();
+    adminApi.runBackup();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
