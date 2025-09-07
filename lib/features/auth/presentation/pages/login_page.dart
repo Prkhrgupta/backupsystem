@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swift_cloud_backup/app.dart';
 import 'package:swift_cloud_backup/core/api/login_auth_api.dart';
 

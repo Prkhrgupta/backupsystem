@@ -10,7 +10,7 @@ class NotificationService {
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
@@ -19,19 +19,29 @@ class NotificationService {
     if (_isInitialized) return; // Prevent double initialization
 
     // Android settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // Linux settings
-    final linuxSettings = LinuxInitializationSettings(defaultActionName: 'Open App');
+    final linuxSettings =
+        LinuxInitializationSettings(defaultActionName: 'Open App');
 
     // macOS/iOS settings
     const macSettings = DarwinInitializationSettings();
+
+    // Windows settings ✅ required to avoid crash
+    const windowsSettings = WindowsInitializationSettings(
+      appName: 'Swift Cloud Backup',
+      appUserModelId: 'com.swiftcloud.backup',
+      guid: 'f1304478-b402-420d-9640-bffbae228ae6',
+    );
 
     final settings = InitializationSettings(
       android: androidSettings,
       iOS: macSettings,
       macOS: macSettings,
       linux: linuxSettings,
+      windows: windowsSettings,
     );
 
     await _flutterLocalNotificationsPlugin.initialize(
@@ -97,15 +107,17 @@ class NotificationService {
         );
     }
 
-    // Linux and macOS/iOS details (do NOT use const for Linux)
+    // Linux, macOS/iOS, Windows details
     final linuxDetails = LinuxNotificationDetails();
     const macDetails = DarwinNotificationDetails();
+    const windowsDetails = WindowsNotificationDetails();
 
     final notificationDetails = NotificationDetails(
       android: androidDetails,
       linux: linuxDetails,
       iOS: macDetails,
       macOS: macDetails,
+      windows: windowsDetails,
     );
 
     try {
@@ -113,7 +125,7 @@ class NotificationService {
         0,
         title,
         body,
-        notificationDetails/**/,
+        notificationDetails,
         payload: body, // can pass additional data
       );
     } catch (e) {

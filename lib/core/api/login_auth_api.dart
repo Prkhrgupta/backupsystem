@@ -8,9 +8,12 @@ import 'package:archive/archive_io.dart';
 import 'package:swift_cloud_backup/utils/notification_system.dart';
 
 class AdminApi {
-  static const String baseUrl = String.fromEnvironment("BASE_URL", defaultValue: "http://localhost:8080/");
-  static const String minioBaseUrl = String.fromEnvironment("MINIO_BASE_URL", defaultValue: "http://localhost:9000/");  /// Admin Login
+  static const String baseUrl = String.fromEnvironment("BASE_URL",
+      defaultValue: "http://localhost:8080/");
+  static const String minioBaseUrl = String.fromEnvironment("MINIO_BASE_URL",
+      defaultValue: "http://localhost:9000/");
 
+  /// Admin Login
 
   Future<bool> adminLogin(String username, String password) async {
     final url = Uri.parse('${baseUrl}admin/get-admin-details');
@@ -293,12 +296,35 @@ class AdminApi {
       final zipFileName = "${username}_$formattedDate.zip";
       final zipFilePath = p.join(Directory.systemTemp.path, zipFileName);
 
-      final encoder = ZipFileEncoder();
-      encoder.create(zipFilePath);
-      encoder.addDirectory(folder, includeDirName: false);
-      encoder.close();
+      // Build Archive by walking the folder
+      final archive = Archive();
 
+      await for (final entity
+          in folder.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          final bytes = await entity.readAsBytes();
+
+          // Relative path from the folder root
+          final relPath = p.relative(entity.path, from: folder.path);
+
+          // Ensure ZIP uses forward slashes (POSIX)
+          final entryName = p.posix.joinAll(p.split(relPath));
+
+          archive.addFile(ArchiveFile(entryName, bytes.length, bytes));
+        } else if (entity is Directory) {
+          // Add directory entry if you want empty folders preserved:
+          final relPath = p.relative(entity.path, from: folder.path);
+          if (relPath != '.') {
+            final entryName = p.posix.joinAll(p.split(relPath)) + '/';
+            archive.addFile(ArchiveFile(entryName, 0, []));
+          }
+        }
+      }
+
+      // Encode and write the zip
+      final zipData = ZipEncoder().encode(archive);
       final zipFile = File(zipFilePath);
+      await zipFile.writeAsBytes(zipData!);
 
       NotificationService().showNotification(
         title: "Backup Created",
@@ -307,9 +333,10 @@ class AdminApi {
       );
 
       final uploaded = await uploadToMinio(zipFileName, zipFile);
-      await zipFile.delete();
+      await zipFile.delete().catchError((_) {}); // best-effort cleanup
       return uploaded;
-    } catch (e) {
+    } catch (e, st) {
+      print('runBackup error: $e\n$st');
       NotificationService().showNotification(
         title: "Backup Error",
         body: "Error: $e",
