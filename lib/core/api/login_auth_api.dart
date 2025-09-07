@@ -8,10 +8,10 @@ import 'package:archive/archive_io.dart';
 import 'package:swift_cloud_backup/utils/notification_system.dart';
 
 class AdminApi {
-  static const String baseUrl = "http://localhost:8080/";
-  static const String minioBaseUrl = "http://localhost:9000/";
+  static const String baseUrl = String.fromEnvironment("BASE_URL", defaultValue: "http://localhost:8080/");
+  static const String minioBaseUrl = String.fromEnvironment("MINIO_BASE_URL", defaultValue: "http://localhost:9000/");  /// Admin Login
 
-  /// Admin Login
+
   Future<bool> adminLogin(String username, String password) async {
     final url = Uri.parse('${baseUrl}admin/get-admin-details');
     String basicAuth =
