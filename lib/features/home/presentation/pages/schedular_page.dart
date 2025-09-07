@@ -26,6 +26,12 @@ class _SchedulingPageState extends State<SchedulingPage> {
     _loadPreferences();
   }
 
+  /// Format time to 12-hour with AM/PM
+  String _formatTime(BuildContext context, TimeOfDay time) {
+    final localizations = MaterialLocalizations.of(context);
+    return localizations.formatTimeOfDay(time, alwaysUse24HourFormat: false);
+  }
+
   /// Load saved preferences
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,11 +67,36 @@ class _SchedulingPageState extends State<SchedulingPage> {
     }
   }
 
+  /// Check if there are changes compared to saved preferences
+  Future<bool> _hasChanges() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedFrequency = prefs.getString("frequency") ?? "Daily";
+    final savedHour = prefs.getInt("time_hour");
+    final savedMinute = prefs.getInt("time_minute");
+    final savedDay = prefs.getString("day");
+    final savedDate = prefs.getInt("date");
+
+    if (savedFrequency != _selectedFrequency) return true;
+    if ((_selectedTime?.hour != savedHour) || (_selectedTime?.minute != savedMinute)) return true;
+    if (savedDay != _selectedDay) return true;
+    if (savedDate != _selectedDate) return true;
+
+    return false;
+  }
+
   Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
     );
+
     if (picked != null) {
       setState(() {
         _selectedTime = picked;
@@ -74,15 +105,28 @@ class _SchedulingPageState extends State<SchedulingPage> {
   }
 
   void _applySchedule() async {
+    final hasChanges = await _hasChanges();
+
+    if (!hasChanges) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ NO changes, already applied"),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     await _savePreferences();
+
     SchedulerService schedulerService = SchedulerService();
-    // restart scheduler timer again
     schedulerService.start();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("✅ Schedule applied successfully!"),
+        content: Text("✅ Successfully updated!"),
         duration: Duration(seconds: 2),
       ),
     );
@@ -99,46 +143,42 @@ class _SchedulingPageState extends State<SchedulingPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               /// Frequency selection
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedFrequency,
-                    decoration: const InputDecoration(
-                      labelText: "Select Frequency",
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _frequencies
-                        .map((freq) => DropdownMenuItem(
-                      value: freq,
-                      child: Text(freq),
-                    ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedFrequency = value!;
-                        _selectedDay = null;
-                        _selectedDate = null;
-                      });
-                    },
-                  ),
+              DropdownButtonFormField<String>(
+                value: _selectedFrequency,
+                decoration: const InputDecoration(
+                  labelText: "Select Frequency",
+                  border: OutlineInputBorder(),
                 ),
+                items: _frequencies
+                    .map((freq) => DropdownMenuItem(
+                  value: freq,
+                  child: Text(freq),
+                ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFrequency = value!;
+                    _selectedDay = null;
+                    _selectedDate = null;
+                  });
+                },
               ),
               const SizedBox(height: 16),
 
               /// Time Picker
-              Card(
-                elevation: 2,
-                child: ListTile(
-                  title: Text(
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  _selectedTime == null
+                      ? "No time selected"
+                      : "Selected Time: ${_formatTime(context, _selectedTime!)}",
+                ),
+                trailing: ElevatedButton(
+                  onPressed: _pickTime,
+                  child: Text(
                     _selectedTime == null
-                        ? "No time selected"
-                        : "Selected Time: ${_selectedTime!.format(context)}",
-                  ),
-                  trailing: ElevatedButton(
-                    onPressed: _pickTime,
-                    child: const Text("Pick Time"),
+                        ? "Pick Time"
+                        : _formatTime(context, _selectedTime!),
                   ),
                 ),
               ),
@@ -146,56 +186,44 @@ class _SchedulingPageState extends State<SchedulingPage> {
 
               /// Weekly / Monthly options
               if (_selectedFrequency == "Weekly")
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedDay,
-                      decoration: const InputDecoration(
-                        labelText: "Select Day",
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _days
-                          .map((day) => DropdownMenuItem(
-                        value: day,
-                        child: Text(day),
-                      ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedDay = value;
-                        });
-                      },
-                    ),
+                DropdownButtonFormField<String>(
+                  value: _selectedDay,
+                  decoration: const InputDecoration(
+                    labelText: "Select Day",
+                    border: OutlineInputBorder(),
                   ),
+                  items: _days
+                      .map((day) => DropdownMenuItem(
+                    value: day,
+                    child: Text(day),
+                  ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDay = value;
+                    });
+                  },
                 ),
 
               if (_selectedFrequency == "Monthly")
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: DropdownButtonFormField<int>(
-                      value: _selectedDate,
-                      decoration: const InputDecoration(
-                        labelText: "Select Date",
-                        border: OutlineInputBorder(),
-                      ),
-                      items: List.generate(
-                        31,
-                            (i) => DropdownMenuItem(
-                          value: i + 1,
-                          child: Text("${i + 1}"),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedDate = value;
-                        });
-                      },
+                DropdownButtonFormField<int>(
+                  value: _selectedDate,
+                  decoration: const InputDecoration(
+                    labelText: "Select Date",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: List.generate(
+                    31,
+                        (i) => DropdownMenuItem(
+                      value: i + 1,
+                      child: Text("${i + 1}"),
                     ),
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDate = value;
+                    });
+                  },
                 ),
 
               const SizedBox(height: 30),

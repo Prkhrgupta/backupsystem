@@ -1,42 +1,64 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+enum NotificationType { success, warning, error, info }
 
 class NotificationService {
+  // Singleton instance
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
-
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
+  bool _isInitialized = false;
+
+  /// Initialize the plugin (must be called before showing notifications)
   Future<void> init() async {
+    if (_isInitialized) return; // Prevent double initialization
+
+    // Android settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const linuxSettings = LinuxInitializationSettings(defaultActionName: 'Open App');
+
+    // Linux settings
+    final linuxSettings = LinuxInitializationSettings(defaultActionName: 'Open App');
+
+    // macOS/iOS settings
     const macSettings = DarwinInitializationSettings();
 
-    const settings = InitializationSettings(
+    final settings = InitializationSettings(
       android: androidSettings,
-      linux: linuxSettings,
       iOS: macSettings,
       macOS: macSettings,
+      linux: linuxSettings,
     );
 
     await _flutterLocalNotificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) {
-        // This will be called when user clicks notification
+        // Called when user clicks notification
         print('Notification clicked: ${response.payload}');
         // TODO: Bring app to foreground or navigate to page
       },
     );
+
+    _isInitialized = true;
   }
 
+  /// Show a notification
   Future<void> showNotification({
     required String title,
     required String body,
     NotificationType type = NotificationType.info,
   }) async {
+    // Ensure initialization before showing notification
+    if (!_isInitialized) {
+      print('NotificationService not initialized. Initializing now...');
+      await init();
+    }
+
+    // Android channel details based on type
     AndroidNotificationDetails androidDetails;
     switch (type) {
       case NotificationType.success:
@@ -75,7 +97,8 @@ class NotificationService {
         );
     }
 
-    const linuxDetails = LinuxNotificationDetails();
+    // Linux and macOS/iOS details (do NOT use const for Linux)
+    final linuxDetails = LinuxNotificationDetails();
     const macDetails = DarwinNotificationDetails();
 
     final notificationDetails = NotificationDetails(
@@ -85,14 +108,16 @@ class NotificationService {
       macOS: macDetails,
     );
 
-    await _flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      body,
-      notificationDetails,
-      payload: body, // can pass additional data
-    );
+    try {
+      await _flutterLocalNotificationsPlugin.show(
+        0,
+        title,
+        body,
+        notificationDetails/**/,
+        payload: body, // can pass additional data
+      );
+    } catch (e) {
+      print('Failed to show notification: $e');
+    }
   }
 }
-
-enum NotificationType { success, warning, error, info }

@@ -18,6 +18,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: "SIT - Swift Cloud : Backup System",
       theme: ThemeData(primarySwatch: Colors.blue),
       home: FutureBuilder<bool>(

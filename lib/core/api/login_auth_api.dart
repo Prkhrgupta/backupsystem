@@ -28,12 +28,28 @@ class AdminApi {
         await prefs.setString("username", username);
         await prefs.setString("password", password);
         await prefs.setString("firmName", data["name"]);
+
+        NotificationService().showNotification(
+          title: "Login Successful",
+          body: "Welcome back, ${data["name"]} ✅",
+          type: NotificationType.success,
+        );
+
         return true;
       } else {
+        NotificationService().showNotification(
+          title: "Login Failed",
+          body: "Invalid credentials ❌",
+          type: NotificationType.error,
+        );
         return false;
       }
     } catch (e) {
-      print('Error: $e');
+      NotificationService().showNotification(
+        title: "Login Error",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return false;
     }
   }
@@ -45,7 +61,11 @@ class AdminApi {
     final password = prefs.getString("password");
 
     if (username == null || password == null) {
-      print("No saved credentials found.");
+      NotificationService().showNotification(
+        title: "Presigned URL Error",
+        body: "No saved credentials found ⚠️",
+        type: NotificationType.error,
+      );
       return null;
     }
 
@@ -63,12 +83,19 @@ class AdminApi {
       if (response.statusCode == 200) {
         return response.body;
       } else {
-        print(
-            "Failed to get presigned URL: ${response.statusCode} - ${response.body}");
+        NotificationService().showNotification(
+          title: "Presigned URL Failed",
+          body: "Error: ${response.statusCode} - ${response.body}",
+          type: NotificationType.error,
+        );
         return null;
       }
     } catch (e) {
-      print("Error fetching presigned URL: $e");
+      NotificationService().showNotification(
+        title: "Presigned URL Exception",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return null;
     }
   }
@@ -78,7 +105,6 @@ class AdminApi {
     final presignedUrl = await getPresignedUrl(objectName);
 
     if (presignedUrl == null) {
-      print("No presigned URL available.");
       return null;
     }
 
@@ -88,14 +114,28 @@ class AdminApi {
       if (response.statusCode == 200) {
         final file = File(savePath);
         await file.writeAsBytes(response.bodyBytes);
-        print("File saved at $savePath");
+
+        NotificationService().showNotification(
+          title: "Download Successful",
+          body: "$objectName saved at $savePath ✅",
+          type: NotificationType.success,
+        );
+
         return file;
       } else {
-        print("Failed to download object: ${response.statusCode}");
+        NotificationService().showNotification(
+          title: "Download Failed",
+          body: "Error: ${response.statusCode}",
+          type: NotificationType.error,
+        );
         return null;
       }
     } catch (e) {
-      print("Error downloading object: $e");
+      NotificationService().showNotification(
+        title: "Download Error",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return null;
     }
   }
@@ -107,7 +147,11 @@ class AdminApi {
     final password = prefs.getString("password");
 
     if (username == null || password == null) {
-      print("No saved credentials found.");
+      NotificationService().showNotification(
+        title: "List Error",
+        body: "No saved credentials found ⚠️",
+        type: NotificationType.error,
+      );
       return [];
     }
 
@@ -125,12 +169,19 @@ class AdminApi {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => MinioObject.fromJson(e)).toList();
       } else {
-        print(
-            "Failed to fetch object list: ${response.statusCode} - ${response.body}");
+        NotificationService().showNotification(
+          title: "Fetch Failed",
+          body: "Error: ${response.statusCode} - ${response.body}",
+          type: NotificationType.error,
+        );
         return [];
       }
     } catch (e) {
-      print("Error fetching object list: $e");
+      NotificationService().showNotification(
+        title: "Fetch Error",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return [];
     }
   }
@@ -142,7 +193,11 @@ class AdminApi {
     final password = prefs.getString("password");
 
     if (username == null || password == null) {
-      print("No saved credentials found.");
+      NotificationService().showNotification(
+        title: "Upload Error",
+        body: "No saved credentials found ⚠️",
+        type: NotificationType.error,
+      );
       return false;
     }
 
@@ -158,8 +213,11 @@ class AdminApi {
       );
 
       if (response.statusCode != 200) {
-        print(
-            "Failed to get presigned policy: ${response.statusCode} - ${response.body}");
+        NotificationService().showNotification(
+          title: "Upload Failed",
+          body: "Presigned policy error: ${response.statusCode}",
+          type: NotificationType.error,
+        );
         return false;
       }
 
@@ -180,14 +238,26 @@ class AdminApi {
       final res = await http.Response.fromStream(streamedResponse);
 
       if (res.statusCode == 204) {
-        print("✅ Upload successful!");
+        NotificationService().showNotification(
+          title: "Upload Successful",
+          body: "$objectName uploaded successfully ✅",
+          type: NotificationType.success,
+        );
         return true;
       } else {
-        print("❌ Upload failed: ${res.statusCode} - ${res.body}");
+        NotificationService().showNotification(
+          title: "Upload Failed",
+          body: "Error: ${res.statusCode} - ${res.body}",
+          type: NotificationType.error,
+        );
         return false;
       }
     } catch (e) {
-      print("Error uploading to MinIO: $e");
+      NotificationService().showNotification(
+        title: "Upload Error",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return false;
     }
   }
@@ -199,13 +269,21 @@ class AdminApi {
     final username = prefs.getString("username");
 
     if (path == null || username == null) {
-      print("No folder selected or user not logged in.");
+      NotificationService().showNotification(
+        title: "Backup Error",
+        body: "No folder selected or user not logged in ⚠️",
+        type: NotificationType.error,
+      );
       return false;
     }
 
     final folder = Directory(path);
     if (!await folder.exists()) {
-      print("Selected folder does not exist.");
+      NotificationService().showNotification(
+        title: "Backup Error",
+        body: "Selected folder does not exist ⚠️",
+        type: NotificationType.error,
+      );
       return false;
     }
 
@@ -222,17 +300,21 @@ class AdminApi {
 
       final zipFile = File(zipFilePath);
 
-      print("Backup created at $zipFilePath, uploading...");
       NotificationService().showNotification(
-        title: "Backup Successful",
-        body: "$zipFileName uploaded successfully ✅",
-        type: NotificationType.success,
+        title: "Backup Created",
+        body: "Uploading $zipFileName ⏳",
+        type: NotificationType.info,
       );
+
       final uploaded = await uploadToMinio(zipFileName, zipFile);
       await zipFile.delete();
       return uploaded;
     } catch (e) {
-      print("Error running backup: $e");
+      NotificationService().showNotification(
+        title: "Backup Error",
+        body: "Error: $e",
+        type: NotificationType.error,
+      );
       return false;
     }
   }
